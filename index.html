@@ -26,7 +26,7 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24p
 </head>
 <body>
 <div class="card">
-  <div class="badge">🔗 连接测试 v0.2</div>
+  <div class="badge">🔗 连接测试 v0.3</div>
   <h2>情绪效价测试</h2>
   <p class="sub">请拖动滑块回答以下问题，然后点击提交。</p>
   <form id="surveyForm">
@@ -45,9 +45,6 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24p
   <div id="status" class="status"></div>
 </div>
 <script>
-const AT_KEY = 'patYyIOTx8dNpppj6.de6872de0ad0105277f85015c4973418ea94beca9eb803b65e885c2c4fbb2f3a';
-const AT_URL = 'https://api.airtable.com/v0/appF76QMj228DRECC/tblGg83zUt0k9Iwmg';
-
 const slider = document.getElementById('valence');
 const display = document.getElementById('valenceValue');
 slider.addEventListener('input', () => { display.textContent = slider.value; });
@@ -56,33 +53,24 @@ document.getElementById('surveyForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('submitBtn');
   const status = document.getElementById('status');
-  btn.disabled = true;
-  btn.textContent = '提交中...';
-  status.className = 'status';
-  status.textContent = '';
+  btn.disabled = true; btn.textContent = '提交中...';
+  status.className = 'status'; status.textContent = '';
 
   try {
-    const resp = await fetch(AT_URL, {
+    const resp = await fetch('/api/submit', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${AT_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ records: [{ fields: {
-        Valence: Number(slider.value),
-        Timestamp: new Date().toISOString().split('T')[0],
-        'User Agent': navigator.userAgent.slice(0, 200)
-      }}]})
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ valence: Number(slider.value) })
     });
     const data = await resp.json();
-    if (!resp.ok) {
-      throw new Error(data.error?.message || JSON.stringify(data.error));
-    }
+    if (!data.success) throw new Error(data.error || '提交失败');
     status.className = 'status success';
     status.textContent = '✅ 提交成功！';
     btn.textContent = '已提交';
   } catch (err) {
     status.className = 'status error';
     status.textContent = '❌ ' + err.message;
-    btn.disabled = false;
-    btn.textContent = '重试提交';
+    btn.disabled = false; btn.textContent = '重试提交';
   }
 });
 </script>
