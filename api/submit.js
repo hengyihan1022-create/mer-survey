@@ -8,46 +8,40 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const AIRTABLE_KEY = process.env.AIRTABLE_KEY;
-  if (!AIRTABLE_KEY) {
-    return res.status(500).json({ error: 'Airtable key not configured' });
-  }
-  const AIRTABLE_URL = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`;
+  if (!AIRTABLE_KEY) return res.status(500).json({ error: 'Airtable key not configured' });
+
+  const AURL = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}`;
 
   if (req.method === 'POST') {
     try {
-      const record = {
-        fields: {
-          valence: req.body.valence,
-          timestamp: req.body.timestamp || new Date().toISOString(),
-          user_agent: req.headers['user-agent'] || ''
-        }
-      };
-      const atResp = await fetch(AIRTABLE_URL, {
+      const record = { fields: {
+        valence: req.body.valence,
+        timestamp: req.body.timestamp || new Date().toISOString(),
+        user_agent: req.headers['user-agent'] || ''
+      }};
+      const resp = await fetch(AURL, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${AIRTABLE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ records: [record] })
       });
-      if (!atResp.ok) {
-        const e = await atResp.json();
-        return res.status(500).json({ success: false, error: e.error?.message });
-      }
-      const atData = await atResp.json();
-      return res.status(200).json({
-        success: true,
-        id: atData.records?.[0]?.id,
-        url: `https://airtable.com/${BASE_ID}/${TABLE_ID}/${atData.records?.[0]?.id}`
-      });
+      const data = await resp.json();
+      if (!resp.ok) return res.status(500).json({ success: false, error: data.error?.message });
+      return res.status(200).json({ success: true, id: data.records?.[0]?.id });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
     }
   }
 
   if (req.method === 'GET') {
-    const atResp = await fetch(`${AIRTABLE_URL}?maxRecords=5&sort[0][field]=timestamp&sort[0][direction]=desc`, {
-      headers: { 'Authorization': `Bearer ${AIRTABLE_KEY}` }
-    });
-    const atData = await atResp.json();
-    return res.status(200).json({ records: atData.records?.map(r => r.fields) || [] });
+    try {
+      const resp = await fetch(`${AURL}?maxRecords=5&sort[0][field]=timestamp&sort[0][direction]=desc`, {
+        headers: { 'Authorization': `Bearer ${AIRTABLE_KEY}` }
+      });
+      const data = await resp.json();
+      return res.status(200).json({ records: data.records?.map(r => r.fields) || [] });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
