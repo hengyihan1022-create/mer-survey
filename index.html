@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MER 问卷·连接测试</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+.card { background: white; border-radius: 12px; padding: 40px; max-width: 500px; width: 100%; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+h2 { font-size: 18px; color: #1a1a2e; margin-bottom: 8px; }
+.sub { font-size: 14px; color: #666; margin-bottom: 24px; }
+label { display: block; font-size: 15px; color: #333; margin-bottom: 12px; font-weight: 500; }
+.slider-container { position: relative; padding: 12px 0; }
+input[type="range"] { width: 100%; height: 6px; -webkit-appearance: none; appearance: none; background: linear-gradient(to right, #e74c3c, #f39c12, #2ecc71); border-radius: 3px; outline: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: white; border: 2px solid #4a90d9; border-radius: 50%; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+.labels { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 6px; }
+.value-display { text-align: center; font-size: 32px; font-weight: 700; color: #4a90d9; margin: 16px 0 8px; }
+.anchor-labels { display: flex; justify-content: space-between; font-size: 12px; color: #999; margin-top: 2px; }
+.btn { display: block; width: 100%; padding: 14px; background: #4a90d9; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 24px; transition: background 0.2s; }
+.btn:hover { background: #357abd; }
+.btn:disabled { background: #bbb; cursor: not-allowed; }
+.status { text-align: center; margin-top: 16px; font-size: 14px; min-height: 24px; }
+.status.success { color: #27ae60; }
+.status.error { color: #e74c3c; }
+.badge { display: inline-block; background: #eef2ff; color: #4a90d9; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="badge">🔗 连接测试 v0.1</div>
+  <h2>情绪效价测试</h2>
+  <p class="sub">请拖动滑块回答以下问题，然后点击提交。</p>
+  <form id="surveyForm">
+    <label for="valence">你现在感觉心情如何？</label>
+    <div class="slider-container">
+      <input type="range" id="valence" min="0" max="100" value="50">
+      <div class="value-display"><span id="valenceValue">50</span></div>
+      <div class="anchor-labels">
+        <span>非常不愉快</span>
+        <span>中性</span>
+        <span>非常愉快</span>
+      </div>
+    </div>
+    <button type="submit" class="btn" id="submitBtn">提交</button>
+  </form>
+  <div id="status" class="status"></div>
+</div>
+<script>
+const slider = document.getElementById('valence');
+const display = document.getElementById('valenceValue');
+slider.addEventListener('input', () => { display.textContent = slider.value; });
+
+document.getElementById('surveyForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  const status = document.getElementById('status');
+  btn.disabled = true;
+  btn.textContent = '提交中...';
+  status.className = 'status';
+  status.textContent = '';
+
+  try {
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ valence: parseInt(slider.value), timestamp: new Date().toISOString() })
+    });
+    const data = await res.json();
+    if (data.success) {
+      status.className = 'status success';
+      status.textContent = '✅ 提交成功！ID: ' + data.id;
+      btn.textContent = '✅ 已提交';
+    } else {
+      throw new Error(data.error || '提交失败');
+    }
+  } catch (err) {
+    status.className = 'status error';
+    status.textContent = '❌ 错误: ' + err.message;
+    btn.disabled = false;
+    btn.textContent = '重试提交';
+  }
+});
+</script>
+</body>
+</html>
