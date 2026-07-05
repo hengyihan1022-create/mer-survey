@@ -14,18 +14,26 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
+      const now = new Date();
+      // 用 YYYY-MM-DD 格式，兼容各种日期格式设置
+      const dateStr = now.toISOString().split('T')[0];
+      const ua = (req.headers['user-agent'] || '').slice(0, 200);
+
       const record = { fields: {
-        valence: req.body.valence,
-        timestamp: req.body.timestamp || new Date().toISOString(),
-        user_agent: req.headers['user-agent'] || ''
+        valence: Number(req.body.valence),
+        timestamp: dateStr,
+        user_agent: ua
       }};
+
       const resp = await fetch(AURL, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${AIRTABLE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ records: [record] })
       });
       const data = await resp.json();
-      if (!resp.ok) return res.status(500).json({ success: false, error: data.error?.message });
+      if (!resp.ok) {
+        return res.status(500).json({ success: false, error: data.error?.message, detail: data.error?.type });
+      }
       return res.status(200).json({ success: true, id: data.records?.[0]?.id });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
@@ -34,10 +42,11 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const resp = await fetch(`${AURL}?maxRecords=5&sort[0][field]=timestamp&sort[0][direction]=desc`, {
+      const resp = await fetch(`${AURL}?maxRecords=20&sort[0][field]=timestamp&sort[0][direction]=desc`, {
         headers: { 'Authorization': `Bearer ${AIRTABLE_KEY}` }
       });
       const data = await resp.json();
+      if (!resp.ok) return res.status(500).json({ error: data.error?.message });
       return res.status(200).json({ records: data.records?.map(r => r.fields) || [] });
     } catch (err) {
       return res.status(500).json({ error: err.message });
