@@ -1,5 +1,5 @@
-const BASE_ID = 'appF76QMj228DRECC';
-const TABLE_ID = 'tblGg83zUt0k9Iwmg';
+const BASE_ID = 'appn1C9kiZrvUmOI8';
+const TABLE_ID = 'tblt0tjLbiYBHaKlG';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
